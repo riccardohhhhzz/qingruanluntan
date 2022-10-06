@@ -1,1 +1,59 @@
 # TODO: 补充docker compose配置文件
+version: "3"
+services:
+  app:
+    container_name: app
+    restart: always
+    build: .
+    command: >
+      bash -c
+      "gunicorn --timeout=30 --workers=4 --bind :8000 manage:app"
+    volumes:
+      - .:/code
+      - static-volume:/code/app/static
+    expose:
+      - "8000"
+    depends_on:
+      - db
+    networks:
+      - web_network
+      - db_network
+  db:
+    container_name: mysql
+    image: mysql:5.7
+    volumes:
+      - "./mysql:/var/lib/mysql"
+    # env_file: .env
+    expose:
+      - "3306"
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=2019011463
+      - MYSQL_DATABASE=thss
+      - TZ=Asia/Shanghai
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    networks:
+      - db_network
+  
+  nginx:
+    container_name: nginx
+    restart: always
+    image: nginx:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - static-volume:/code/app/static
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - web_network
+
+networks:
+  web_network:
+    driver: bridge
+  db_network:
+    driver: bridge
+
+volumes:
+  static-volume:
